@@ -8,7 +8,7 @@
 
 import Network
 
-class NetworkMonitor {
+class NetworkMonitor: NetworkMonitorProtocol {
     static let shared = NetworkMonitor()
     
     private let monitor = NWPathMonitor()
@@ -28,12 +28,6 @@ class NetworkMonitor {
         monitor.pathUpdateHandler = { [weak self] path in
             self?.isConnected = path.status == .satisfied
             self?.getConnectionType(path)
-            
-            if path.status == .satisfied {
-                print("✅ Connected to the internet")
-            } else {
-                print("❌ No internet connection")
-            }
         }
         monitor.start(queue: queue)
     }

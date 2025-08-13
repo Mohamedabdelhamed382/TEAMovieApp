@@ -16,10 +16,14 @@ protocol GetMoviesUseCaseProtocol {
 final class GetMoviesUseCase: GetMoviesUseCaseProtocol {
     
     private let repository: MoviesRepositoryProtocol
+    private let networkMonitor: NetworkMonitorProtocol
     private let pageLimit: Int
     
-    init(repository: MoviesRepositoryProtocol, pageLimit: Int = 20) {
+    init(repository: MoviesRepositoryProtocol,
+         networkMonitor: NetworkMonitorProtocol = NetworkMonitor.shared,
+         pageLimit: Int = 20) {
         self.repository = repository
+        self.networkMonitor = networkMonitor
         self.pageLimit = pageLimit
     }
     
@@ -36,7 +40,7 @@ final class GetMoviesUseCase: GetMoviesUseCaseProtocol {
                     return Just(cached).setFailureType(to: AppError.self).eraseToAnyPublisher()
                 }
                 
-                if NetworkMonitor.shared.isConnected {
+                if self.networkMonitor.isConnected {
                     print("🌍 Fetching from API...")
                     return self.repository.fetchMovies(page: page)
                         .flatMap { apiMovies -> AnyPublisher<[Movie], AppError> in
@@ -44,7 +48,6 @@ final class GetMoviesUseCase: GetMoviesUseCaseProtocol {
                                 .mapError { $0 as AppError }
                                 .eraseToAnyPublisher()
                         }
-                        .mapError { $0 as AppError }
                         .eraseToAnyPublisher()
                 }
                 
@@ -55,6 +58,6 @@ final class GetMoviesUseCase: GetMoviesUseCaseProtocol {
     }
     
     func updateFavoriteStatus(movieId: Int, isFavorite: Bool) -> AnyPublisher<Void, AppError> {
-            repository.updateFavoriteStatus(movieId: movieId, isFavorite: isFavorite)
+        repository.updateFavoriteStatus(movieId: movieId, isFavorite: isFavorite)
     }
 }

@@ -78,7 +78,7 @@ final class MoviesRepositoryImpl: MoviesRepositoryProtocol {
     func updateFavoriteStatus(movieId: Int, isFavorite: Bool) -> AnyPublisher<Void, AppError> {
         localDataSource
             .updateFavoriteStatus(movieId: movieId, isFavorite: isFavorite)
-            .mapError { AppError.database(($0 as? DataBaseError) ?? .updateError) }
+            .mapError { AppError.database(($0 as DataBaseError)) }
             .eraseToAnyPublisher()
     }
     
