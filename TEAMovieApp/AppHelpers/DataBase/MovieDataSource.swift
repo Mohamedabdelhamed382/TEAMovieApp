@@ -12,6 +12,9 @@ import CoreData
 
 protocol MoviesDataSource {
     func saveMovies(_ movieDTO: [MovieDTO]) -> AnyPublisher<Void, Error>
+    func fetchFromDatabaseMovies(page: Int, limit: Int) -> AnyPublisher<[Movie], DataBaseError>
+    func updateFavoriteStatus(movieId: Int, isFavorite: Bool) -> AnyPublisher<Void, DataBaseError>
+    func getMoviesCount() -> Int
 }
 
 final class CoreDataMoviesStorage {
@@ -32,6 +35,8 @@ final class CoreDataMoviesStorage {
 }
 
 extension CoreDataMoviesStorage: MoviesDataSource {
+ 
+    
     func saveMovies(_ movieDTO: [MovieDTO]) -> AnyPublisher<Void, Error> {
         return Deferred { [store] in
             return Future<Void, Error> { promise in
@@ -52,6 +57,30 @@ extension CoreDataMoviesStorage: MoviesDataSource {
                         promise(.failure(error))
                     }
                 }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func fetchFromDatabaseMovies(page: Int, limit: Int) -> AnyPublisher<[Movie], DataBaseError> {
+        Future { [weak self] promise in
+            guard let self = self else {
+                return promise(.failure(.fetchError))
+            }
+            
+            let context = self.store.managedObjectContext
+            let request = NSFetchRequest<MovieEntity>(entityName: MovieEntity.entityName)
+            request.sortDescriptors = [NSSortDescriptor(key: "cachedAt", ascending: false)]
+            request.fetchLimit = limit
+            request.fetchOffset = (page - 1) * limit
+            request.returnsObjectsAsFaults = false
+            
+            do {
+                let entities = try context.fetch(request)
+                let movies = entities.map { $0.toDomain() }
+                promise(.success(movies))
+            } catch {
+                promise(.failure(.fetchError))
             }
         }
         .eraseToAnyPublisher()

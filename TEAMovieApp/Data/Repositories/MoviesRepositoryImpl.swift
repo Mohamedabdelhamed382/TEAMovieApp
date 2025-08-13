@@ -12,9 +12,12 @@ import CoreData
 final class MoviesRepositoryImpl: MoviesRepositoryProtocol {
     
     private let networkService: NetworkServiceProtocol
-    private let localDataSource: CoreDataMoviesStorage
+    private let localDataSource: MoviesDataSource
     
-    init(networkService: NetworkServiceProtocol, localDataSource: CoreDataMoviesStorage) {
+    init(
+        networkService: NetworkServiceProtocol,
+        localDataSource: MoviesDataSource
+    ) {
         self.networkService = networkService
         self.localDataSource = localDataSource
     }
@@ -52,27 +55,9 @@ final class MoviesRepositoryImpl: MoviesRepositoryProtocol {
     
     // MARK: - Fetch from DB
     func fetchFromDatabaseMovies(page: Int, limit: Int) -> AnyPublisher<[Movie], AppError> {
-        Future { [weak self] promise in
-            guard let self = self else {
-                return promise(.failure(.database(.fetchError)))
-            }
-            
-            let context = self.localDataSource.store.managedObjectContext
-            let request = NSFetchRequest<MovieEntity>(entityName: MovieEntity.entityName)
-            request.sortDescriptors = [NSSortDescriptor(key: "cachedAt", ascending: false)]
-            request.fetchLimit = limit
-            request.fetchOffset = (page - 1) * limit
-            request.returnsObjectsAsFaults = false
-            
-            do {
-                let entities = try context.fetch(request)
-                let movies = entities.map { $0.toDomain() }
-                promise(.success(movies))
-            } catch {
-                promise(.failure(.database(.fetchError)))
-            }
-        }
-        .eraseToAnyPublisher()
+        localDataSource.fetchFromDatabaseMovies(page: page, limit: limit)
+            .mapError { AppError.database(($0 as DataBaseError)) }
+            .eraseToAnyPublisher()
     }
     
     func updateFavoriteStatus(movieId: Int, isFavorite: Bool) -> AnyPublisher<Void, AppError> {
@@ -84,6 +69,6 @@ final class MoviesRepositoryImpl: MoviesRepositoryProtocol {
     
     // MARK: - Count
     func totalMoviesInDB() -> Int {
-        localDataSource.store.totalCount()
+        return localDataSource.getMoviesCount()
     }
 }

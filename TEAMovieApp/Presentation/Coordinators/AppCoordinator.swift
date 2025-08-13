@@ -8,14 +8,17 @@
 import UIKit
 
 final class AppCoordinator: Coordinator {
+    
     let navigationController: UINavigationController
-
+    let dependencies = MovieDIContainer()
+    
     init(navigationController: UINavigationController) {
         self.navigationController = navigationController
     }
 
     func start() {
-        let moviesCoordinator = MoviesCoordinator(navigationController: navigationController)
+        let moviesCoordinator = MoviesCoordinator(navigationController: navigationController,
+                                                  depend:  dependencies)
         moviesCoordinator.start()
     }
 }
